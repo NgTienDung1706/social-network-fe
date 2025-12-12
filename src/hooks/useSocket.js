@@ -54,7 +54,7 @@ export const useSocket = () => {
 
     if (!user || !payload?.message || !payload?.conversation) return;
 
-    const { message, conversation, unreadCount } = payload;
+    const { message, conversation, seenBy, unreadCount } = payload;
     const convoId = conversation._id;
 
     const messagesNotLoaded = !messages[convoId]; // conversation chưa load
@@ -78,6 +78,7 @@ export const useSocket = () => {
       updateConversation({
         ...conversation,
         lastMessage,
+        seenBy: seenBy,
         unreadCount: unreadCount || conversation.unreadCount || {},
       })
     );
@@ -93,10 +94,11 @@ export const useSocket = () => {
   };
 
   const handleMarkAsReadSuccess = (payload) => {
-    const { conversationId, unreadCount } = payload;
+    const { conversationId, seenBy, unreadCount } = payload;
     dispatch(
       updateConversation({
         _id: conversationId,
+        seenBy: seenBy,
         unreadCount: unreadCount || {},
       })
     );

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import ConversationItem from "@/features/message/components/ConversationItem";
-import { fetchConversations } from "@/redux/chatSlice";
+import NewMessageModal from "@/features/message/components/NewMessageModal";
 import { FaPlus } from "react-icons/fa";
 
 // Mock data cho ghi chú của bạn bè (tương tự MOCK_CONVERSATIONS, nhưng phù hợp horizontal)
@@ -48,27 +48,13 @@ const MOCK_FRIENDS_NOTES = [
   },
 ];
 
-function MessagesSidebar({ onSelectConversation, activeId }) {
-  const dispatch = useDispatch();
+function MessagesSidebar({ conversations, onSelectConversation, activeId }) {
   const [q, setQ] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [noteItems] = useState(MOCK_FRIENDS_NOTES); // State cho notes (không cần search riêng)
   //const debRef = useRef(null);
   const notesScrollRef = useRef(null); // Ref cho notes scroll container
   const me = useSelector((state) => state.auth.login.currentUser);
-  const conversations = useSelector((state) => state.chat.conversations || []);
-
-  useEffect(() => {
-    const getConversations = async () => {
-      try {
-        // Gọi action để fetch conversations
-        dispatch(fetchConversations());
-      } catch (error) {
-        console.error("Failed to fetch conversations:", error);
-      }
-    };
-
-    getConversations();
-  }, []);
 
   // Hỗ trợ scroll ngang bằng chuột wheel
   useEffect(() => {
@@ -127,6 +113,10 @@ function MessagesSidebar({ onSelectConversation, activeId }) {
     </div>
   );
 
+  const handleSelectUsers = (selectedUserIds) => {
+    console.log("Selected users for new message:", selectedUserIds);
+  };
+
   return (
     <div
       className="h-screen flex flex-col bg-white"
@@ -138,7 +128,10 @@ function MessagesSidebar({ onSelectConversation, activeId }) {
           <h1 className="text-xl font-bold">{me?.username}</h1>
           {/* <ChevronDownIcon className="w-4 h-4 text-gray-500" /> */}
         </div>
-        <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+        <button
+          className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          onClick={() => setIsModalOpen(true)}
+        >
           <FaPlus className="w-4 h-4 text-gray-500" />
         </button>
       </div>
@@ -232,6 +225,11 @@ function MessagesSidebar({ onSelectConversation, activeId }) {
           />
         ))}
       </div>
+      <NewMessageModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSelectUsers={handleSelectUsers}
+      />
     </div>
   );
 }

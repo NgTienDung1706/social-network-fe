@@ -49,17 +49,6 @@ function ConversationItem({ item, active, onClick }) {
     const imageCount = hasImages ? lastMessage.images.length : 0;
     const content = lastMessage.content || "";
 
-    let senderName = "";
-    if (!isOwnMessage) {
-      // Lấy tên sender cho đối phương
-      senderName =
-        lastMessage.senderId?.profile?.firstname +
-          " " +
-          lastMessage.senderId?.profile?.lastname ||
-        lastMessage.senderId?.username ||
-        "Someone";
-    }
-
     if (hasImages) {
       // Ưu tiên ảnh nếu có (schema có images array)
       if (isOwnMessage) {
@@ -67,9 +56,7 @@ function ConversationItem({ item, active, onClick }) {
           imageCount === 1 ? "Bạn đã gửi một ảnh" : "Bạn đã gửi nhiều ảnh";
       } else {
         displayLastMessage =
-          imageCount === 1
-            ? `${senderName} đã gửi một ảnh`
-            : `${senderName} đã gửi nhiều ảnh`;
+          imageCount === 1 ? "Đã gửi một ảnh" : "Đã gửi nhiều ảnh"; // Nguyên gốc cho đối phương
       }
     } else if (content) {
       // Nếu là text

@@ -64,7 +64,7 @@ const authSlice = createSlice({
     },
     setCurrentUser: (state, action) => {
       state.login.currentUser = action.payload.user;
-    }
+    },
   },
 });
 
@@ -83,3 +83,5 @@ export const {
 } = authSlice.actions;
 
 export default authSlice.reducer;
+
+export const authSelector = (state) => state.auth.login;

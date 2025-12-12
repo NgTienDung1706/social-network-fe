@@ -255,3 +255,5 @@ export const {
   updateConversation,
 } = chatSlice.actions;
 export default chatSlice.reducer;
+
+export const chatSelector = (state) => state.chat;
