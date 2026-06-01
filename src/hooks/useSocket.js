@@ -13,6 +13,7 @@ import {
   addMessage,
   updateConversation,
   fetchMessages,
+  addNewConversation,
 } from "@/redux/chatSlice.js";
 
 export const useSocket = () => {
@@ -26,11 +27,13 @@ export const useSocket = () => {
   const activeConversationId = useSelector(
     (state) => state.chat.activeConversationId
   );
+  const conversations = useSelector((state) => state.chat.conversations);
 
   // --- Refs to avoid stale closure ---
   const userRef = useRef(user);
   const messagesRef = useRef(messages);
   const activeRef = useRef(activeConversationId);
+  const conversationsRef = useRef(conversations);
 
   useEffect(() => {
     userRef.current = user;
@@ -43,6 +46,10 @@ export const useSocket = () => {
   useEffect(() => {
     activeRef.current = activeConversationId;
   }, [activeConversationId]);
+
+  useEffect(() => {
+    conversationsRef.current = conversations;
+  }, [conversations]);
 
   // ===========================
   // HANDLERS (stable – no deps)
@@ -108,6 +115,27 @@ export const useSocket = () => {
     dispatch(setOnlineUsers(userIds));
   };
 
+  const handleNewConversation = (payload) => {
+    const { conversation } = payload;
+    const conversations = conversationsRef.current;
+    const user = userRef.current;
+
+    if (!user || !conversation) return;
+
+    const convoId = conversation._id;
+
+    // Kiểm tra chưa có trong state để tránh duplicate
+    if (!conversations.some((conv) => conv._id === convoId)) {
+      // Dispatch action để add vào list (sẽ unshift và sort trong reducer)
+      dispatch(addNewConversation(conversation));
+
+      // Join room ngay để nhận tin nhắn realtime
+      socketRef.current?.emit("join-conversation", { conversationId: convoId });
+
+      console.log(`Joined new conversation room: ${convoId}`);
+    }
+  };
+
   // ===========================
   // SOCKET INIT
   // ===========================
@@ -136,6 +164,8 @@ export const useSocket = () => {
       setSocketHelpers({
         markAsRead: (conversationId) =>
           socketRef.current.emit("mark-as-read", { conversationId }),
+        joinConversation: (conversationId) =>
+          socketRef.current?.emit("join-conversation", { conversationId }),
       })
     );
 
@@ -152,6 +182,7 @@ export const useSocket = () => {
     socket.on("online-users", handleOnlineUsers);
     socket.on("new-message", handleNewMessage);
     socket.on("mark-as-read-success", handleMarkAsReadSuccess);
+    socket.on("new-conversation", handleNewConversation);
 
     // Cleanup on unmount or token change
     return () => {

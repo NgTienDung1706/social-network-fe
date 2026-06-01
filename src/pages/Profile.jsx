@@ -15,6 +15,8 @@ import UserPostList from "@/features/posts/components/UserPostList";
 import FollowingList from "@/features/profile/components/FollowingList";
 import FollowerList from "@/features/profile/components/FollowerList";
 import OptionsMenu from "@/components/common/OptionsMenu";
+import { followUser, unfollowUser } from "@/features/profile/profileAPI";
+import { useConfirmModal } from "@/contexts/ConfirmModalContext";
 
 function formatDateDDMMYYYY(dateStr) {
   if (!dateStr) return "---";
@@ -33,6 +35,8 @@ function Profile({ isOwnProfile = true, profileData = null }) {
   const [hoverTab, setHoverTab] = useState(null); // Theo dõi tab được hover
   const [showFollowingList, setShowFollowingList] = useState(false);
   const [showFollowerList, setShowFollowerList] = useState(false);
+  const { openConfirm } = useConfirmModal();
+  const [loadingRelationship, setLoadingRelationship] = useState(false);
 
   const currentUser = useSelector((state) => state.auth.login.currentUser);
   const navigate = useNavigate();
@@ -100,6 +104,48 @@ function Profile({ isOwnProfile = true, profileData = null }) {
       left: `${(index * 100) / tabs.length}%`,
       width: `${100 / tabs.length}%`,
     };
+  };
+
+  const handleFollow = async (userId) => {
+    openConfirm(
+      "Xác nhận theo dõi",
+      "Bạn có chắc muốn theo dõi người này không?",
+      async () => {
+        setLoadingRelationship(true);
+        const res = await followUser(userId);
+        if (res) {
+          setProfile((prev) => ({
+            ...prev,
+            relationship_status: {
+              ...prev.relationship_status,
+              following: true,
+            },
+          }));
+        }
+        setLoadingRelationship(false);
+      }
+    );
+  };
+
+  const handleUnfollow = async (userId) => {
+    openConfirm(
+      "Xác nhận bỏ theo dõi",
+      "Bạn có chắc muốn bỏ theo dõi người này không?",
+      async () => {
+        setLoadingRelationship(true);
+        const res = await unfollowUser(userId);
+        if (res) {
+          setProfile((prev) => ({
+            ...prev,
+            relationship_status: {
+              ...prev.relationship_status,
+              following: false,
+            },
+          }));
+        }
+        setLoadingRelationship(false);
+      }
+    );
   };
 
   return (
@@ -197,12 +243,10 @@ function Profile({ isOwnProfile = true, profileData = null }) {
                 )}
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2 mb-4 w-full">
-              {" "}
-              {/* SỬA: Stack buttons trên mobile, row trên sm */}
+            <div className="flex justify-start gap-2 mb-4 w-full">
               {isOwnProfile ? (
                 <button
-                  className="flex items-center justify-center gap-1 px-3 py-1 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 text-sm font-medium w-full sm:w-auto"
+                  className="flex items-center justify-center gap-1 px-3 py-1 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 text-sm font-medium flex-1"
                   onClick={() =>
                     navigate("/edit-profile", {
                       state: {
@@ -220,21 +264,29 @@ function Profile({ isOwnProfile = true, profileData = null }) {
                 </button>
               ) : (
                 <>
-                  <button className="flex items-center justify-center gap-1 px-3 py-1 bg-blue-500 text-white rounded-lg text-sm font-medium flex-1 sm:w-auto">
-                    {" "}
-                    {/* SỬA: Flex trên mobile */}
-                    Kết bạn
-                  </button>
-                  <button className="flex items-center justify-center gap-1 px-3 py-1 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium flex-1 sm:w-auto">
-                    {" "}
-                    {/* SỬA: Flex trên mobile */}
+                  {profile.relationship_status?.following ? (
+                    <button
+                      className="flex items-center justify-center gap-1 px-3 py-1 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 text-sm font-medium flex-1"
+                      onClick={() => handleUnfollow(profile._id)}
+                      disabled={loadingRelationship}
+                    >
+                      Đang theo dõi
+                    </button>
+                  ) : (
+                    <button
+                      className="flex items-center justify-center gap-1 px-3 py-1 bg-brand-green text-white rounded-lg text-sm font-medium flex-1 hover:bg-green-600"
+                      onClick={() => handleFollow(profile._id)}
+                      disabled={loadingRelationship}
+                    >
+                      Theo dõi
+                    </button>
+                  )}
+                  <button className="flex items-center justify-center gap-1 px-3 py-1 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 text-sm font-medium flex-1">
                     Nhắn tin
                   </button>
                 </>
               )}
               <div className="flex-shrink-0">
-                {" "}
-                {/* SỬA: OptionsMenu không co */}
                 <OptionsMenu options={profileOptions} />
               </div>
             </div>

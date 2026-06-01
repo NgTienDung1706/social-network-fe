@@ -113,10 +113,6 @@ function MessagesSidebar({ conversations, onSelectConversation, activeId }) {
     </div>
   );
 
-  const handleSelectUsers = (selectedUserIds) => {
-    console.log("Selected users for new message:", selectedUserIds);
-  };
-
   return (
     <div
       className="h-screen flex flex-col bg-white"
@@ -228,7 +224,6 @@ function MessagesSidebar({ conversations, onSelectConversation, activeId }) {
       <NewMessageModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSelectUsers={handleSelectUsers}
       />
     </div>
   );

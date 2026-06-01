@@ -19,7 +19,7 @@ const ChatWindowBody = () => {
   const conversations = chatSlice.conversations;
   const messageLoading = chatSlice.messageLoading;
   const me = authSlice.currentUser;
-  let otherUser;
+  let otherUsers;
   let lastMessageStatus = "delivered";
 
   const messages = chatSlice.messages[activeConversationId]?.items || [];
@@ -30,18 +30,34 @@ const ChatWindowBody = () => {
   );
 
   if (selectedConversation?.type === "direct") {
-    const otherParticipant = selectedConversation.participants.filter(
+    // Lọc ra người dùng khác (chỉ 1 người)
+    const otherParticipants = selectedConversation.participants.filter(
       (p) => p._id !== me._id
     );
-    otherUser = otherParticipant.length > 0 ? otherParticipant[0] : null;
+    otherUsers = otherParticipants.length > 0 ? otherParticipants : []; // Trả về mảng (có thể chỉ 1 phần tử)
+  } else if (selectedConversation?.type === "group") {
+    // Lọc ra tất cả người dùng khác (nhiều người)
+    const otherParticipants = selectedConversation.participants.filter(
+      (p) => p._id !== me._id
+    );
+    // Tạo mảng object với thông tin cơ bản (tên, avatar, v.v.)
+    otherUsers = otherParticipants.map((participant) => ({
+      _id: participant._id,
+      name:
+        `${participant.lastname || ""} ${participant.firstname || ""}`.trim() ||
+        participant.username,
+      avatar: participant.avatar,
+      username: participant.username,
+      // Thêm các field khác nếu cần
+    }));
   }
 
   if (selectedConversation) {
     if (
       selectedConversation.seenBy &&
-      selectedConversation.seenBy.includes(otherUser._id)
+      otherUsers.some((user) => selectedConversation.seenBy.includes(user._id))
     ) {
-      console.log(otherUser._id, selectedConversation.seenBy);
+      //console.log(otherUser._id, selectedConversation.seenBy);
       lastMessageStatus = "received";
     } else {
       lastMessageStatus = "delivered";
@@ -103,7 +119,7 @@ const ChatWindowBody = () => {
     }
 
     // Reset flag sau khi xử lý
-    isLoadingMoreRef.current = false;
+    //isLoadingMoreRef.current = false;
   }, [messages, scrollToBottom]); // Thay messages.length bằng messages để detect thay đổi nội dung (như thêm ảnh)
 
   // Handle scroll để load more khi scroll lên top + track trạng thái bottom
@@ -155,10 +171,9 @@ const ChatWindowBody = () => {
     // Giữ vị trí scroll tương đối: cộng thêm height mới (prepended) vào scrollTop cũ
     requestAnimationFrame(() => {
       container.scrollTop = beforeScrollTop + heightDiff;
+      // Reset flag
+      isLoadingMoreRef.current = false;
     });
-
-    // Reset flag
-    isLoadingMoreRef.current = false;
   }, [messages]); // Chạy sau khi messages update từ fetch
 
   // Phần render giữ nguyên...
@@ -188,13 +203,15 @@ const ChatWindowBody = () => {
     );
   }
 
-  if (messages.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-full text-gray-500 text-muted-foreground">
-        Cuộc trò chuyện trống. Bắt đầu gửi tin nhắn!
-      </div>
-    );
-  }
+  // if (messages.length === 0) {
+  //   return (
+  //     <div className="p-4 bg-white h-full flex flex-col overflow-hidden">
+  //       <div className="flex flex-col overflow-y-auto overflow-x-hidden beautiful-scrollbar">
+  //         <MessageItemHeader user={otherUser} />
+  //       </div>
+  //     </div>
+  //   );
+  // }
   return (
     <div className="p-4 bg-white h-full flex flex-col overflow-hidden">
       <div
@@ -202,15 +219,15 @@ const ChatWindowBody = () => {
         className="flex flex-col overflow-y-auto overflow-x-hidden beautiful-scrollbar"
       >
         {/* Spinner load more ở đầu nếu đang load và có messages */}
-        {messageLoading && messages.length > 0 && (
+        {/* {messageLoading && messages.length > 0 && (
           <div className="flex items-center justify-center py-4 bg-gray-50 border-b">
             <div className="flex items-center space-x-2 text-sm text-gray-500">
               <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
               <span>Đang tải thêm tin nhắn...</span>
             </div>
           </div>
-        )}
-        {!hasMore && <MessageItemHeader user={otherUser} />}
+        )} */}
+        {!hasMore && <MessageItemHeader user={otherUsers[0]} />}
         {messages.map((message, index) => (
           <MessageItem
             key={message._id}

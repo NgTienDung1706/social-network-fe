@@ -1,16 +1,19 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef } from "react";
 //import axios from "@/utils/axiosInstance";
 import { getFollowingList } from "@/features/profile/profileAPI";
 import FollowItem from "./FollowItem";
+import useFollowList from "@/hooks/useFollowList";
 
 const FollowingList = ({ username, onClose }) => {
-  const [following, setFollowing] = useState([]);
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [resetFlag, setResetFlag] = useState(false);
   const modalRef = useRef(null);
+
+  // Sử dụng custom hook để quản lý danh sách following với phân trang
+  const {
+    items: following,
+    loading,
+    lastItemRef,
+  } = useFollowList(getFollowingList, username, 10);
 
   useEffect(() => {
     document.body.style.overflow = "hidden"; // chặn scroll
@@ -61,61 +64,6 @@ const FollowingList = ({ username, onClose }) => {
       document.documentElement.style.scrollbarGutter = "";
     };
   }, []);
-
-  const observer = useRef();
-
-  const lastPostRef = useCallback(
-    (node) => {
-      if (loading) return;
-      if (observer.current) observer.current.disconnect();
-
-      observer.current = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting && hasMore && !loading) {
-          setPage((prev) => prev + 1);
-        }
-      });
-
-      if (node) observer.current.observe(node);
-    },
-    [loading, hasMore]
-  );
-
-  useEffect(() => {
-    setFollowing([]);
-    setPage(1);
-    setHasMore(true);
-    setResetFlag(true);
-  }, [username]);
-
-  useEffect(() => {
-    if (!hasMore) return;
-    const fetchFollowing = async () => {
-      try {
-        setLoading(true);
-        if (resetFlag) {
-          const res = await getFollowingList(username, 1, 10);
-          setFollowing(Array.isArray(res.followings) ? res.followings : []);
-          setHasMore(res.hasMore);
-          setResetFlag(false);
-          return;
-        }
-        if (page > 1) {
-          const res = await getFollowingList(username, page, 10);
-          setFollowing((prev) => [
-            ...prev,
-            ...(Array.isArray(res.followings) ? res.followings : []),
-          ]);
-          setHasMore(res.hasMore);
-        }
-      } catch (err) {
-        console.error("Error fetching following list:", err);
-        setFollowing([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchFollowing();
-  }, [username, page, hasMore, resetFlag]);
 
   // const handleUnfollow = async (followingId) => {
   //   await axios.delete(`/profile/${username}/following/${followingId}`);
@@ -183,7 +131,7 @@ const FollowingList = ({ username, onClose }) => {
               <FollowItem
                 key={user._id}
                 user={user}
-                ref={isLast ? lastPostRef : null}
+                ref={isLast ? lastItemRef : null}
                 mode="following"
               />
             );

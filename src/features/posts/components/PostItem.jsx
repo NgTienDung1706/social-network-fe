@@ -177,7 +177,7 @@ function PostItem({
   }, [mediaList, containerWidth, isVideo]);
 
   const getTaggedDisplayText = () => {
-    if (tagged_users.length === 0) return null;
+    if (tagged_users.length === 0) return "";
     if (tagged_users.length === 1) {
       return (
         <>
@@ -382,7 +382,7 @@ function PostItem({
           <div className="flex flex-col">
             <span className="font-semibold text-gray-900 text-sm">
               {username}
-              {getTaggedDisplayText()}
+              {tagged_users && getTaggedDisplayText()}
             </span>
             <span className="text-xs text-gray-500">
               {formatTimeAgo(time)}

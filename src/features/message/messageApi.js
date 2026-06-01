@@ -42,3 +42,12 @@ export const sendGroupMessage = async (conversationId, content, images) => {
   });
   return res;
 };
+
+export const createConversation = async (type, name, memberIds) => {
+  const res = await axios.post("/conversation", {
+    type,
+    name,
+    memberIds,
+  });
+  return res;
+};

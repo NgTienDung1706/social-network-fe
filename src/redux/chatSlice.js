@@ -5,6 +5,7 @@ import {
   getMessages,
   sendDirectMessage,
   sendGroupMessage,
+  createConversation,
 } from "@/features/message/messageApi.js";
 
 export const fetchMessages = createAsyncThunk(
@@ -94,6 +95,28 @@ export const sendGroupMessageThunk = createAsyncThunk(
   }
 );
 
+export const createConversationThunk = createAsyncThunk(
+  "chat/createConversation",
+  async ({ type, name, memberIds }, thunkAPI) => {
+    try {
+      const conversation = await createConversation(type, name, memberIds);
+      const newConversation = conversation;
+
+      const { socketHelpers } = thunkAPI.getState().socket;
+
+      if (socketHelpers?.joinConversation) {
+        socketHelpers.joinConversation(newConversation._id);
+      } else {
+        console.warn("Socket helpers not available yet – skipping join");
+      }
+
+      return newConversation;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.response.data);
+    }
+  }
+);
+
 const initialState = {
   conversations: [],
   messages: {},
@@ -175,6 +198,17 @@ const chatSlice = createSlice({
         return conv;
       });
     },
+    addNewConversation: (state, action) => {
+      const newConversation = action.payload;
+      // Check if conversation already exists
+      const exists = state.conversations.some(
+        (conv) => conv._id === newConversation._id
+      );
+
+      if (!exists) {
+        state.conversations.unshift(newConversation);
+      }
+    },
     clearMessages: (state) => {
       state.messages = [];
     },
@@ -216,10 +250,8 @@ const chatSlice = createSlice({
       .addCase(sendDirectMessageThunk.pending, (state) => {
         state.messageLoading = true;
       })
-      .addCase(sendDirectMessageThunk.fulfilled, (state, action) => {
+      .addCase(sendDirectMessageThunk.fulfilled, (state) => {
         state.messageLoading = false;
-        const message = action.payload;
-        const conversationId = message.conversationId;
         const activeConversationId = state.activeConversationId;
         state.conversations = state.conversations.map((conv) =>
           conv._id === activeConversationId ? { ...conv, seenBy: [] } : conv
@@ -232,10 +264,8 @@ const chatSlice = createSlice({
       .addCase(sendGroupMessageThunk.pending, (state) => {
         state.messageLoading = true;
       })
-      .addCase(sendGroupMessageThunk.fulfilled, (state, action) => {
+      .addCase(sendGroupMessageThunk.fulfilled, (state) => {
         state.messageLoading = false;
-        const message = action.payload;
-        const conversationId = message.conversationId;
         const activeConversationId = state.activeConversationId;
         state.conversations = state.conversations.map((conv) =>
           conv._id === activeConversationId ? { ...conv, seenBy: [] } : conv
@@ -244,6 +274,11 @@ const chatSlice = createSlice({
       .addCase(sendGroupMessageThunk.rejected, (state) => {
         state.messageLoading = false;
       });
+    builder.addCase(createConversationThunk.fulfilled, (state, action) => {
+      const newConversation = action.payload;
+      //state.conversations.unshift(newConversation);
+      state.activeConversationId = newConversation._id;
+    });
   },
 });
 
@@ -253,6 +288,7 @@ export const {
   clearMessages,
   setTyping,
   updateConversation,
+  addNewConversation,
 } = chatSlice.actions;
 export default chatSlice.reducer;
 
